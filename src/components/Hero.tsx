@@ -7,7 +7,10 @@ export function Hero() {
       {/* Background Image — use an <img> for full-bleed object-cover background */}
       <div className="absolute inset-0">
           <img
-            src="/hero.jpg"
+            // Use Vite's BASE_URL so this works if the app is served under a subpath
+            src={import.meta.env.BASE_URL + 'hero.jpg'}
+            // Fallback to placeholder if hero.jpg is missing
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = import.meta.env.BASE_URL + 'placeholder.svg'; }}
             alt="Hero background"
             // object-top ensures we see the top of the image while object-cover keeps it full-bleed
             className="absolute inset-0 w-full h-full object-cover object-top"

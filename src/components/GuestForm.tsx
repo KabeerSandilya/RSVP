@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
 import { Minus, Plus, Send } from 'lucide-react';
-import { addGuest } from '@/lib/db';
+import { submitRSVP } from '@/lib/api';
 import { toast } from 'sonner';
 
 export function GuestForm() {
@@ -30,7 +30,7 @@ export function GuestForm() {
     setIsSubmitting(true);
 
     try {
-      await addGuest({
+      await submitRSVP({
         name: formData.name,
         email: formData.email,
         phone: formData.phone || null,
