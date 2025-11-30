@@ -7,7 +7,7 @@ export function Hero() {
       {/* Background Image — use an <img> for full-bleed object-cover background */}
       <div className="absolute inset-0">
           <img
-            src="src/images/hero.jpg"
+            src="/hero.jpg"
             alt="Hero background"
             // object-top ensures we see the top of the image while object-cover keeps it full-bleed
             className="absolute inset-0 w-full h-full object-cover object-top"
