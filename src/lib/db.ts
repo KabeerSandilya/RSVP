@@ -1,3 +1,6 @@
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 export interface Guest {
   id?: string;
   name: string;
@@ -9,25 +12,46 @@ export interface Guest {
   created_at?: string;
 }
 
-import apiCall from './api';
+// -----------------------------------------------------------------------------
+// API Wrapper import
+// -----------------------------------------------------------------------------
+import apiCall from './api.ts';
 
+// -----------------------------------------------------------------------------
+// Public API (RSVP submission)
+// -----------------------------------------------------------------------------
 export async function addGuest(guest: Guest) {
+  // POST /api/guests
   const res = await apiCall('/guests', 'POST', guest);
   return { insertedId: res.insertedId };
 }
 
+// -----------------------------------------------------------------------------
+// Admin-required API calls
+// These must include credentials internally so the admin_token cookie is sent
+// -----------------------------------------------------------------------------
 export async function getGuests(): Promise<Guest[]> {
-  const res = await apiCall('/guests', 'GET');
+  // GET /api/guests
+  const res = await apiCall('/guests', 'GET', undefined, {
+    credentials: 'include',
+  });
   return res as Guest[];
 }
 
 export async function getGuestStats() {
-  const res = await apiCall('/guests/stats', 'GET');
+  // GET /api/guests/stats
+  const res = await apiCall('/guests/stats', 'GET', undefined, {
+    credentials: 'include',
+  });
   return res;
 }
 
 export async function exportGuestsCSV(): Promise<string> {
-  // Return the CSV as raw text; rely on apiCall's credentials/include behavior
-  const res = await apiCall('/guests/export', 'GET', undefined, { raw: true, headers: { 'Content-Type': 'text/csv' } });
+  // GET /api/guests/export — return raw CSV
+  const res = await apiCall('/guests/export', 'GET', undefined, {
+    raw: true,
+    credentials: 'include', // IMPORTANT so admin cookie is sent
+    headers: { 'Content-Type': 'text/csv' },
+  });
   return String(res);
 }

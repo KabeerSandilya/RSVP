@@ -3,7 +3,6 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Download, FileSpreadsheet, Users, LogOut } from 'lucide-react';
 import { getGuests, getGuestStats, exportGuestsCSV } from '@/lib/db';
-import apiCall from '@/lib/api';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 
@@ -14,11 +13,10 @@ interface AdminPanelProps {
 export function AdminPanel({ onLogout }: AdminPanelProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  // Fetch guest count
+  // Fetch guest count / stats
   const { data: guestStats } = useQuery({
     queryKey: ['guest-stats'],
     queryFn: async () => {
-      // Use the MongoDB Data API wrapper to fetch and compute stats client-side.
       return getGuestStats();
     },
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -52,7 +50,7 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
       toast.success('Guest list exported successfully!');
     } catch (error: any) {
       console.error('Export failed:', error);
-      toast.error(error.message || 'Failed to export guest list');
+      toast.error(error?.message || 'Failed to export guest list');
     } finally {
       setIsExporting(false);
     }
@@ -60,13 +58,29 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
 
   const handleLogout = async () => {
     try {
-      await apiCall('/admin/logout', 'POST');
+      // Use fetch directly and include credentials so the admin_token cookie is sent and cleared properly
+      const res = await fetch('/api/admin/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.warn('Logout returned non-OK:', body);
+      }
+
+      // Clear local client state regardless (server should clear cookie)
       localStorage.removeItem('admin_authenticated');
       toast.success('Logged out successfully');
       onLogout();
     } catch (err) {
       console.error('Logout failed', err);
+      // Best-effort cleanup
       localStorage.removeItem('admin_authenticated');
+      toast.success('Logged out');
       onLogout();
     }
   };
@@ -101,25 +115,25 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">Total RSVPs</span>
                 <span className="text-2xl font-bold text-primary">
-                  {guestStats?.totalGuests || 0}
+                  {guestStats?.totalGuests ?? 0}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">Adults</span>
                 <span className="text-xl font-semibold text-card-foreground">
-                  {guestStats?.totalAdults || 0}
+                  {guestStats?.totalAdults ?? 0}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">Children</span>
                 <span className="text-xl font-semibold text-card-foreground">
-                  {guestStats?.totalChildren || 0}
+                  {guestStats?.totalChildren ?? 0}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 bg-primary/10 px-3 rounded-lg mt-4">
                 <span className="font-semibold text-card-foreground">Total Attendees</span>
                 <span className="text-2xl font-bold text-primary">
-                  {guestStats?.totalAttendees || 0}
+                  {guestStats?.totalAttendees ?? 0}
                 </span>
               </div>
             </div>
@@ -141,18 +155,28 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
                 size="lg"
                 className="w-full gap-2"
               >
-              {isExporting ? (
-                'Exporting...'
-              ) : (
-                <>
-                  <Download className="w-5 h-5" />
-                  Export to CSV
-                </>
-              )}
+                {isExporting ? (
+                  'Exporting...'
+                ) : (
+                  <>
+                    <Download className="w-5 h-5" />
+                    Export to CSV
+                  </>
+                )}
               </Button>
 
               <div className="mt-4">
-                <Button onClick={() => refetchGuests()} variant="ghost" size="sm" className="w-full">
+                <Button
+                  onClick={() => {
+                    if (typeof refetchGuests === 'function') {
+                      refetchGuests();
+                      toast.success('Refetching guest list...');
+                    }
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                >
                   Refresh guest list
                 </Button>
               </div>
@@ -162,6 +186,7 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
             </p>
           </Card>
         </div>
+
         {/* Guests list table */}
         <div className="mt-8">
           <Card className="p-6 bg-card border-2 border-border">

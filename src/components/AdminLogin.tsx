@@ -4,7 +4,7 @@ import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminLogin } from '@/lib/api';
+import { adminLogin as adminLoginHelper } from '@/lib/api';
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -15,19 +15,55 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const attemptDirectFetchLogin = async (pwd: string) => {
+    // Fallback direct fetch to ensure credentials are included and cookie is set
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      credentials: 'include', // important so the browser stores the admin cookie
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Login failed' }));
+      throw new Error(body.error || `Login failed (${res.status})`);
+    }
+    return res.json();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password) return;
     setIsLoading(true);
 
     try {
-      await adminLogin(password);
+      // Primary: use centralized helper if available
+      if (typeof adminLoginHelper === 'function') {
+        await adminLoginHelper(password);
+      } else {
+        // fallback to direct fetch if helper missing
+        await attemptDirectFetchLogin(password);
+      }
+
+      // If helper succeeded, ensure cookie was set and proceed
       localStorage.setItem('admin_authenticated', 'true');
       toast.success('Welcome! Access granted.');
+      setPassword('');
       onLogin();
     } catch (err: any) {
-      console.error('Admin login failed:', err);
-      toast.error(err.message || 'Incorrect password. Please try again.');
-      setPassword('');
+      // If helper failed due to network or non-OK, try a direct fetch fallback once
+      console.warn('adminLogin helper failed, trying direct fetch fallback:', err?.message || err);
+
+      try {
+        await attemptDirectFetchLogin(password);
+        localStorage.setItem('admin_authenticated', 'true');
+        toast.success('Welcome! Access granted.');
+        setPassword('');
+        onLogin();
+      } catch (err2: any) {
+        console.error('Admin login failed:', err2);
+        toast.error(err2?.message || 'Incorrect password. Please try again.');
+        setPassword('');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -58,11 +94,13 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
                 autoFocus
+                disabled={isLoading}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />

@@ -184,18 +184,12 @@ app.get('/api/guests/export', requireAdmin, async (_: Request, res: Response) =>
 // Serve all static files from dist (JS, CSS, images)
 app.use(express.static(STATIC_DIR));
 
-// ---------- Serve frontend build (static) ----------
-// Serve all static files from dist (JS, CSS, images)
-app.use(express.static(STATIC_DIR));
-
 // SPA fallback — serve index.html for any non-API requests.
 // Use app.use with a simple check to avoid router path parsing issues.
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Let API routes continue to their handlers
-  if (req.path.startsWith('/api')) return next();
-
-  // If someone requests a real static file and it exists, express.static already served it.
-  // Otherwise serve the SPA index.html so client-side routing works.
+  // If the request is not for an API route, serve the index.html file.
+  // This allows client-side routing to handle the path.
+  if (req.path.startsWith('/api/')) return next();
   return res.sendFile(path.join(STATIC_DIR, 'index.html'), (err) => {
     if (err) {
       console.error('Error sending index.html for SPA fallback:', err);
