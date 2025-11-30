@@ -184,13 +184,24 @@ app.get('/api/guests/export', requireAdmin, async (_: Request, res: Response) =>
 // Serve all static files from dist (JS, CSS, images)
 app.use(express.static(STATIC_DIR));
 
-// SPA fallback — serve index.html for non-API routes
-// NOTE: use '/*' (not '*') to avoid path-to-regexp errors in some router versions
-app.get('/*', (req: Request, res: Response) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  return res.sendFile(path.join(STATIC_DIR, 'index.html'));
+// ---------- Serve frontend build (static) ----------
+// Serve all static files from dist (JS, CSS, images)
+app.use(express.static(STATIC_DIR));
+
+// SPA fallback — serve index.html for any non-API requests.
+// Use app.use with a simple check to avoid router path parsing issues.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Let API routes continue to their handlers
+  if (req.path.startsWith('/api')) return next();
+
+  // If someone requests a real static file and it exists, express.static already served it.
+  // Otherwise serve the SPA index.html so client-side routing works.
+  return res.sendFile(path.join(STATIC_DIR, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error sending index.html for SPA fallback:', err);
+      return res.status(500).send('Server error');
+    }
+  });
 });
 
 // ---------- Start server ----------
