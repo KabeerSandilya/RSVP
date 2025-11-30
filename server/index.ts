@@ -185,7 +185,8 @@ app.get('/api/guests/export', requireAdmin, async (_: Request, res: Response) =>
 app.use(express.static(STATIC_DIR));
 
 // SPA fallback — serve index.html for non-API routes
-app.get('*', (req: Request, res: Response) => {
+// NOTE: use '/*' (not '*') to avoid path-to-regexp errors in some router versions
+app.get('/*', (req: Request, res: Response) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Not found' });
   }
