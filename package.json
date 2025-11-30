@@ -5,11 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start:dev": "nodemon --watch \"server/**/*.ts\" --exec \"tsx\" server/index.ts",
-    "dev:full": "concurrently \"npm:dev\" \"npm:start:dev\"",
-    "build:client": "vite build",
-    "build:server": "tsc -p tsconfig.server.json",
-    "start": "node dist/index.js",
+    "dev:server": "nodemon --watch \"server/**/*.ts\" --exec \"tsx\" server/index.ts",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
+    "build": "vite build && tsc -p tsconfig.server.json",
+    "start": "node dist/server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
