@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Download, FileSpreadsheet, Users, LogOut } from 'lucide-react';
 import { getGuests, getGuestStats, exportGuestsCSV } from '@/lib/db';
+import apiCall from '@/lib/api';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 
@@ -57,19 +58,17 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
     }
   };
 
-  const handleLogout = () => {
-    const base = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
-    fetch(base + '/api/admin/logout', { method: 'POST', credentials: 'include' })
-      .then(() => {
-        localStorage.removeItem('admin_authenticated');
-        toast.success('Logged out successfully');
-        onLogout();
-      })
-      .catch((err) => {
-        console.error('Logout failed', err);
-        localStorage.removeItem('admin_authenticated');
-        onLogout();
-      });
+  const handleLogout = async () => {
+    try {
+      await apiCall('/admin/logout', 'POST');
+      localStorage.removeItem('admin_authenticated');
+      toast.success('Logged out successfully');
+      onLogout();
+    } catch (err) {
+      console.error('Logout failed', err);
+      localStorage.removeItem('admin_authenticated');
+      onLogout();
+    }
   };
 
   return (

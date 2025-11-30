@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { adminLogin } from '@/lib/api';
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -19,21 +20,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
-      const base = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
-      const resp = await fetch(base + '/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ password }),
-      });
-
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.error || 'Login failed');
-      }
-
-      // server sets an httpOnly cookie when login is successful
-      await resp.json().catch(() => ({}));
+      await adminLogin(password);
       localStorage.setItem('admin_authenticated', 'true');
       toast.success('Welcome! Access granted.');
       onLogin();

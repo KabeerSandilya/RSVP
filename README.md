@@ -72,3 +72,5 @@ Simply open [OnSpace]() and click on Share -> Publish.
   - Input validation for RSVP submissions
 
 If you want, I can help you rotate any exposed secret and finish migrating to httpOnly cookie-based admin authentication on the front-end (no localStorage tokens).
+
+Note: the Supabase serverless function `supabase/functions/export-guests` has been decommissioned — export is now served by the Node server endpoint `/api/guests/export`. Deploy the Node server and use that endpoint for CSV downloads.
