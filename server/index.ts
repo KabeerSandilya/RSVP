@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { addGuest, getGuests, getGuestStats, convertGuestsToCSV } from './db';
+import { addGuest, getGuests, getGuestStats, convertGuestsToCSV } from './db.js';
 
 const app = express();
 // Security headers
