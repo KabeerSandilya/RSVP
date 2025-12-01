@@ -40,30 +40,22 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
       if (typeof adminLoginHelper === 'function') {
         await adminLoginHelper(password);
       } else {
-        // fallback to direct fetch if helper missing
+        // Fallback to direct fetch if helper missing
         await attemptDirectFetchLogin(password);
       }
 
-      // If helper succeeded, ensure cookie was set and proceed
+      // On success, update state and local storage
       localStorage.setItem('admin_authenticated', 'true');
       toast.success('Welcome! Access granted.');
       setPassword('');
       onLogin();
     } catch (err: any) {
-      // If helper failed due to network or non-OK, try a direct fetch fallback once
-      console.warn('adminLogin helper failed, trying direct fetch fallback:', err?.message || err);
-
-      try {
-        await attemptDirectFetchLogin(password);
-        localStorage.setItem('admin_authenticated', 'true');
-        toast.success('Welcome! Access granted.');
-        setPassword('');
-        onLogin();
-      } catch (err2: any) {
-        console.error('Admin login failed:', err2);
-        toast.error(err2?.message || 'Incorrect password. Please try again.');
-        setPassword('');
-      }
+      // This block now correctly handles only the failure case
+      console.error('Admin login failed:', err);
+      toast.error(err?.message || 'Incorrect password. Please try again.');
+      setPassword('');
+      // Ensure local storage is clean on failure
+      localStorage.removeItem('admin_authenticated');
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +85,6 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pr-10"
-                autoFocus
                 disabled={isLoading}
               />
               <button

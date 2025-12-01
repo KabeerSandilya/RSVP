@@ -1,55 +1,61 @@
 import { useState, useEffect } from 'react';
-import { Hero } from '@/components/Hero';
-import { EventDetails } from '@/components/EventDetails';
-import { GuestForm } from '@/components/GuestForm';
-import { AdminPanel } from '@/components/AdminPanel';
-import { AdminLogin } from '@/components/AdminLogin';
+import { Hero } from '../components/Hero';
+import { EventDetails } from '../components/EventDetails';
+import { GuestForm } from '../components/GuestForm';
+import { AdminLogin } from '../components/AdminLogin';
+import { AdminPanel } from '../components/AdminPanel';
+import { verifyAdminSession } from '../lib/auth';
 
 export function HomePage() {
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // Default to false
+  const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    // Check if admin is already authenticated
-    const isAuth = localStorage.getItem('admin_authenticated') === 'true';
-    setIsAdminAuthenticated(isAuth);
-  }, []);
+    const checkSession = async () => {
+      // Only verify with the server if localStorage thinks we are an admin
+      if (localStorage.getItem('admin_authenticated') === 'true') {
+        const isSessionValid = await verifyAdminSession();
+        if (isSessionValid) {
+          // Only set isAdmin to true if the session is confirmed valid
+          setIsAdmin(true);
+        } else {
+          // If server session is invalid, clear local state
+          localStorage.removeItem('admin_authenticated');
+          // isAdmin is already false, so no state change needed
+        }
+      }
+      setIsVerifying(false);
+    };
+
+    checkSession();
+  }, []); // The empty dependency array ensures this runs only once on mount
 
   const handleLogin = () => {
-    setIsAdminAuthenticated(true);
+    setIsAdmin(true);
   };
 
   const handleLogout = () => {
-    setIsAdminAuthenticated(false);
+    localStorage.removeItem('admin_authenticated');
+    setIsAdmin(false);
   };
 
   return (
-    <div className="min-h-screen">
+    <main>
       <Hero />
-      <EventDetails />
-      <GuestForm />
-      {isAdminAuthenticated ? (
+      {isVerifying ? (
+        // While verifying, show a placeholder or nothing under the Hero
+        <div className="h-[50vh]" /> // Adjust height as needed
+      ) : isAdmin ? (
+        // If admin, show the admin panel
         <AdminPanel onLogout={handleLogout} />
       ) : (
-        <AdminLogin onLogin={handleLogin} />
+        // If not admin, show the user view
+        <section id="user-view">
+          <EventDetails />
+          <GuestForm />
+          <AdminLogin onLogin={handleLogin} />
+        </section>
       )}
-      
-      {/* Footer */}
-      <footer className="bg-secondary/50 py-8 px-4 text-center border-t border-border">
-        <p className="text-muted-foreground">
-          With love and gratitude, we look forward to celebrating with you
-        </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Connect with me on instagram{' '}
-            <a
-              href="https://instagram.com/kabeersandilya"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              @kabeersandilya
-            </a>
-        </p>
-      </footer>
-    </div>
+    </main>
   );
 }
